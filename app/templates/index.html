@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Find Restaurants Near You</h2>
+<form id="location-form">
+    <input type="text" id="latitude" placeholder="Enter Latitude" required>
+    <input type="text" id="longitude" placeholder="Enter Longitude" required>
+    <button type="button" id="search-btn">Search</button>
+</form>
+
+<form id="preferences-form">
+    <label for="cuisine">Preferred Cuisine:</label>
+    <input type="text" id="cuisine" placeholder="e.g., Italian, Vegan"><br><br>
+
+    <label for="allergies">Allergies (comma-separated):</label>
+    <input type="text" id="allergies" placeholder="e.g., Nuts, Gluten"><br><br>
+
+    <button type="button" id="preferences-btn">Apply Preferences</button>
+</form>
+
+<h3>Results:</h3>
+<div id="results" style="display: flex; flex-wrap: wrap; gap: 16px;"></div>
+<div id="map" style="height: 400px; margin-top: 16px;"></div>
+
+<script>
+    document.getElementById('search-btn').addEventListener('click', async () => {
+        const lat = document.getElementById('latitude').value;
+        const lon = document.getElementById('longitude').value;
+
+        try {
+            const response = await fetch(`/restaurants`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    lat: lat,
+                    lon: lon,
+                    preferences: preferences
+                })
+            });
+
+            const data = await response.json();
+            console.log("Response Data:", data);  // Log parsed JSON response
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = ""; // Clear previous results
+
+            if (data.error) {
+                resultsDiv.innerHTML = `<p>${data.error}</p>`;
+            } else if (data.length === 0) {
+                resultsDiv.innerHTML = `<p>No restaurants match your filters.</p>`;
+            } else {
+                data.forEach(place => {
+                    const placeCard = document.createElement('div');
+                    placeCard.style.border = "1px solid #ccc";
+                    placeCard.style.padding = "8px";
+                    placeCard.style.borderRadius = "8px";
+                    placeCard.style.width = "250px";
+
+                    placeCard.innerHTML = `
+                        <strong>${place.name}</strong><br>
+                        <em>Address:</em> ${place.address}<br>
+                        <em>Categories:</em> ${place.categories.join(", ")}<br>
+                        <a href="https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}" target="_blank">View on Map</a>
+                    `;
+                    resultsDiv.appendChild(placeCard);
+                });
+            }
+        } catch (error) {
+            console.error("Error Fetching Data:", error);
+            document.getElementById('results').innerHTML = `<p>Error: ${error.message}</p>`;
+        }
+    });
+
+    let map = L.map('map').setView([40.7128, -74.0060], 13); // Default to New York City
+
+// Add OpenStreetMap tiles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+document.getElementById('search-btn').addEventListener('click', async () => {
+        const lat = document.getElementById('latitude').value;
+        const lon = document.getElementById('longitude').value;
+
+        const response = await fetch(`/restaurants`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                lat: lat,
+                lon: lon,
+                preferences: preferences
+            })
+        });
+
+        const data = await response.json();
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = ""; // Clear previous results
+
+        if (data.error) {
+            resultsDiv.innerHTML = `<p>${data.error}</p>`;
+        } else {
+            data.forEach(place => {
+                const placeCard = document.createElement('div');
+                placeCard.style.border = "1px solid #ccc";
+                placeCard.style.padding = "8px";
+                placeCard.style.borderRadius = "8px";
+                placeCard.style.width = "250px";
+
+                placeCard.innerHTML = `
+                    <strong>${place.name}</strong><br>
+                    <em>Address:</em> ${place.address}<br>
+                    <em>Categories:</em> ${place.categories.join(", ")}<br>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lon}" target="_blank">View on Map</a>
+                `;
+                resultsDiv.appendChild(placeCard);
+            });
+        }
+    });
+
+
+let preferences = {};
+
+    document.getElementById('preferences-btn').addEventListener('click', () => {
+        const cuisine = document.getElementById('cuisine').value;
+        const allergies = document.getElementById('allergies').value;
+
+        preferences = {
+            cuisine: cuisine.toLowerCase(),
+            allergies: allergies.split(',').map(a => a.trim().toLowerCase())
+        };
+
+        alert('Preferences updated! Perform a new search to apply them.');
+    });
+</script>
+{% endblock %}
